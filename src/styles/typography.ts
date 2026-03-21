@@ -1,0 +1,15 @@
+export const colors = {
+  cream: "#FAF6F1",
+  white: "#FFFCF8",
+  terra: "#C4725A",
+  terraLight: "#E8A48E",
+  terraDark: "#9E5240",
+  sage: "#8BA888",
+  sageDark: "#6B8B68",
+  sageLight: "#D4E4D1",
+  dark: "#2D2926",
+  gray: "#6B635D",
+  line: "#E8E2DC",
+  peach: "#F5DDD1",
+  sand: "#E6D5C3",
+} as const;
