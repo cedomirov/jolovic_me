@@ -27,8 +27,10 @@ jobs:
 
       - name: Assemble standalone package
         run: |
-          cp -r public .next/standalone/public
           cp -r .next/static .next/standalone/.next/static
+          npm install --cpu=x64 --os=linux --libc=glibc sharp
+          cp -r node_modules/sharp .next/standalone/node_modules/
+          cp -r node_modules/@img .next/standalone/node_modules/
 
       - name: Setup SSH key
         run: |
@@ -37,9 +39,15 @@ jobs:
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H ${{ secrets.DROPLET_HOST }} >> ~/.ssh/known_hosts
 
+      - name: Seed shared public directory
+        run: |
+          rsync -az --ignore-existing \
+            -e "ssh -i ~/.ssh/deploy_key" \
+            public/ ${{ secrets.DROPLET_USER }}@${{ secrets.DROPLET_HOST }}:/home/jolovic/shared/public/
+
       - name: Rsync standalone package to server
         run: |
-          rsync -az --delete \
+          rsync -az --delete --exclude=/public \
             -e "ssh -i ~/.ssh/deploy_key" \
             .next/standalone/ ${{ secrets.DROPLET_USER }}@${{ secrets.DROPLET_HOST }}:/home/jolovic/jolovic_me/
 
@@ -50,6 +58,24 @@ jobs:
           username: ${{ secrets.DROPLET_USER }}
           key: ${{ secrets.DROPLET_SSH_KEY }}
           script: |
-            pm2 restart jolovic_me || pm2 start /home/jolovic/jolovic_me/server.js \
-              --name jolovic_me
+            mkdir -p /home/jolovic/shared/public
+            rm -rf /home/jolovic/jolovic_me/public
+            ln -sfn /home/jolovic/shared/public /home/jolovic/jolovic_me/public
+            pm2 delete jolovic_me 2>/dev/null || true
+            pm2 start /home/jolovic/jolovic_me/server.js --name jolovic_me
             pm2 save
+
+      - name: Health check
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DROPLET_HOST }}
+          username: ${{ secrets.DROPLET_USER }}
+          key: ${{ secrets.DROPLET_SSH_KEY }}
+          script: |
+            sleep 3
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000)
+            if [ "$STATUS" != "200" ]; then
+              echo "Health check failed: HTTP $STATUS"
+              exit 1
+            fi
+            echo "Health check passed: HTTP $STATUS"
