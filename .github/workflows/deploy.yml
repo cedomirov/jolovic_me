@@ -20,11 +20,15 @@ jobs:
           node-version: '22'
           cache: 'npm'
 
-      - name: Install all dependencies and build
+      - name: Install dependencies and build
         run: |
           npm ci
           npm run build
-          npm ci --omit=dev
+
+      - name: Assemble standalone package
+        run: |
+          cp -r public .next/standalone/public
+          cp -r .next/static .next/standalone/.next/static
 
       - name: Setup SSH key
         run: |
@@ -33,21 +37,11 @@ jobs:
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H ${{ secrets.DROPLET_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Rsync build artifacts to server
+      - name: Rsync standalone package to server
         run: |
           rsync -az --delete \
             -e "ssh -i ~/.ssh/deploy_key" \
-            .next/ ${{ secrets.DROPLET_USER }}@${{ secrets.DROPLET_HOST }}:/home/jolovic/jolovic_me/.next/
-          rsync -az --delete \
-            -e "ssh -i ~/.ssh/deploy_key" \
-            public/ ${{ secrets.DROPLET_USER }}@${{ secrets.DROPLET_HOST }}:/home/jolovic/jolovic_me/public/
-          rsync -az --delete \
-            -e "ssh -i ~/.ssh/deploy_key" \
-            node_modules/ ${{ secrets.DROPLET_USER }}@${{ secrets.DROPLET_HOST }}:/home/jolovic/jolovic_me/node_modules/
-          rsync -az \
-            -e "ssh -i ~/.ssh/deploy_key" \
-            package.json package-lock.json \
-            ${{ secrets.DROPLET_USER }}@${{ secrets.DROPLET_HOST }}:/home/jolovic/jolovic_me/
+            .next/standalone/ ${{ secrets.DROPLET_USER }}@${{ secrets.DROPLET_HOST }}:/home/jolovic/jolovic_me/
 
       - name: Restart app
         uses: appleboy/ssh-action@v1.0.3
@@ -56,6 +50,6 @@ jobs:
           username: ${{ secrets.DROPLET_USER }}
           key: ${{ secrets.DROPLET_SSH_KEY }}
           script: |
-            pm2 restart jolovic_me || pm2 start /home/jolovic/jolovic_me/node_modules/.bin/next \
-              --name jolovic_me -- start -p 3000
+            pm2 restart jolovic_me || pm2 start /home/jolovic/jolovic_me/server.js \
+              --name jolovic_me
             pm2 save
