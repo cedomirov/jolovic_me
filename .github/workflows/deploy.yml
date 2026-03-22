@@ -62,6 +62,7 @@ jobs:
             rm -rf /home/jolovic/jolovic_me/public
             ln -sfn /home/jolovic/shared/public /home/jolovic/jolovic_me/public
             pm2 delete jolovic_me 2>/dev/null || true
+            fuser -k 3000/tcp 2>/dev/null || true
             pm2 start /home/jolovic/jolovic_me/server.js --name jolovic_me
             pm2 save
 
