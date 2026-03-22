@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { Blob } from "@/components/Blob";
 import { Btn } from "@/components/Btn";
 import { SvcCard } from "@/components/SvcCard";
@@ -76,19 +77,14 @@ export default function HomePage() {
               </div>
             </div>
             <div className="relative">
-              <div className="w-full aspect-[4/5] rounded-[22px] bg-gradient-to-br from-peach to-sand flex items-center justify-center flex-col gap-1.5">
-                <span className="text-xs text-gray">Hero fotografija</span>
-              </div>
-              <div className="absolute -bottom-3.5 -left-3.5 bg-white rounded-xl px-4 py-3 shadow-lg flex items-center gap-2 z-2">
-                <div className="w-8 h-8 rounded-lg bg-sage-light flex items-center justify-center text-sm">
-                  ★
-                </div>
-                <div>
-                  <div className="text-xs font-semibold text-dark">
-                    4.9 Google ocena
-                  </div>
-                  <div className="text-[10px] text-gray">128 recenzija</div>
-                </div>
+              <div className="w-full aspect-[4/5] rounded-[22px] overflow-hidden bg-gradient-to-br from-peach to-sand">
+                <Image
+                  src="/tijana.jpg"
+                  alt="Tijana Jolović, logoped"
+                  fill
+                  className="object-cover object-top"
+                  priority
+                />
               </div>
             </div>
           </div>
