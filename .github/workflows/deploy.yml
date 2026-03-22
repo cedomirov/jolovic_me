@@ -7,7 +7,7 @@ on:
 
 jobs:
   deploy:
-    name: Build and Deploy to Server
+    name: Build on CI, deploy artifacts to server
     runs-on: ubuntu-latest
 
     steps:
@@ -17,7 +17,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
 
       - name: Install dependencies
@@ -26,16 +26,24 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Deploy to server via SSH
+      - name: Rsync build artifacts to server
+        uses: burnett01/rsync-deployments@7.0.1
+        with:
+          switches: -az --delete
+          path: .next/ public/ package.json package-lock.json
+          remote_path: /home/jolovic/jolovic_me/
+          remote_host: ${{ secrets.DROPLET_HOST }}
+          remote_user: ${{ secrets.DROPLET_USER }}
+          remote_key: ${{ secrets.DROPLET_SSH_KEY }}
+
+      - name: Install prod deps and restart app
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: ${{ secrets.SSH_PORT }}
+          host: ${{ secrets.DROPLET_HOST }}
+          username: ${{ secrets.DROPLET_USER }}
+          key: ${{ secrets.DROPLET_SSH_KEY }}
           script: |
-            cd ${{ secrets.SERVER_PATH }}
-            git pull origin main
-            npm ci
-            npm run build
-            pm2 restart ${{ secrets.PM2_APP_NAME }}
+            cd ~/jolovic_me
+            npm install --omit=dev
+            pm2 restart jolovic_me || pm2 start npm --name jolovic_me -- start -- -p 3000
+            pm2 save
